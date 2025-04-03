@@ -1,5 +1,7 @@
 assets
 resnet50-19c8e357.pth
+README.md
+LICENSE
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
