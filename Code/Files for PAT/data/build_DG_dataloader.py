@@ -77,6 +77,7 @@ def build_reid_test_loader(cfg, dataset_name, opt=None, flag_test=True, shuffle=
     test_transforms = build_transforms(cfg, is_train=False)
     _root = cfg.DATASETS.ROOT_DIR
     if opt is None:
+        print('?????????????????', dataset_name, _root)
         dataset = DATASET_REGISTRY.get(dataset_name)(root=_root)
         if comm.is_main_process():
             if flag_test:

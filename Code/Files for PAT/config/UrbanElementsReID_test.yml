@@ -1,7 +1,7 @@
 MODEL:
   PRETRAIN_CHOICE: 'imagenet'
   #PRETRAIN_PATH: "../../.cache/torch/hub/checkpoints" # root of pretrain path
-  PRETRAIN_PATH: "/home/jgf/Desktop/rhome/jgf/baselineChallenge/" # 
+  PRETRAIN_PATH: "assets/models" 
   METRIC_LOSS_TYPE: 'triplet'
   IF_LABELSMOOTH: 'on'
   IF_WITH_CENTER: 'no'
@@ -26,7 +26,9 @@ DATASETS:
   TRAIN: ('UrbanElementsReID',)
   TEST: ('UrbanElementsReID_test',)
   #ROOT_DIR: ('../../data') # root of datasets
-  ROOT_DIR: '/home/jgf/Desktop/rhome/jgf/baselineChallenge/UrbanElementsReID/'
+  #ROOT_DIR: '/home/jgf/Desktop/rhome/jgf/baselineChallenge/UrbanElementsReID/'
+  ROOT_DIR: 'assets/datasets/urban-reid-challenge'
+
 
 DATALOADER:
   SAMPLER: 'softmax_triplet'
@@ -52,10 +54,10 @@ TEST:
   EVAL: True
   IMS_PER_BATCH: 128
   RE_RANKING: False
-  WEIGHT: "./models/model/part_attention_vit_60.pth" #test 
+  WEIGHT: "assets/models/PAT/part_attention_vit_60.pth" #test 
   NECK_FEAT: 'before'
   FEAT_NORM: True
 
-LOG_ROOT: 'models/' # root of log file
-TB_LOG_ROOT: './tb_log/'
-LOG_NAME: './model'
+LOG_ROOT: 'assets/models/' # root of log file
+TB_LOG_ROOT: './assets/tb_log/'
+LOG_NAME: 'PAT'

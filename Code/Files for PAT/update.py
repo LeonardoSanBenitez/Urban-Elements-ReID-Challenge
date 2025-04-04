@@ -78,6 +78,7 @@ if __name__ == "__main__":
     model.load_param(cfg.TEST.WEIGHT)
 
     for testname in cfg.DATASETS.TEST:
+        print('>>>>>>>>>>>>>>>>>>>>>>>', testname)
         val_loader, num_query = build_reid_test_loader(cfg, testname)
         if cfg.MODEL.NAME == 'part_attention_vit':
             do_inf_pat(cfg, model, val_loader, num_query)

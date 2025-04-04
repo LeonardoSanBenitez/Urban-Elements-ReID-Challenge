@@ -1,5 +1,7 @@
-assets
+assets/
 resnet50-19c8e357.pth
+qf.npy
+gf.npy
 README.md
 LICENSE
 

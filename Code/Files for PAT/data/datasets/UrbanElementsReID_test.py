@@ -25,7 +25,7 @@ class UrbanElementsReID_test(ImageDataset):
         self.dataset_dir = root
         self.dataset_dir_test = root
 
-        self.dataset_dir = osp.join(root, self.dataset_dir)
+        #self.dataset_dir = osp.join(root, self.dataset_dir)  # TODO: I [leonardo] commented this out...
         self.train_dir = osp.join(self.dataset_dir, 'image_train/')
         self.query_dir = osp.join(self.dataset_dir_test, 'image_query/')
         self.gallery_dir = osp.join(self.dataset_dir_test, 'image_test/')
