@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "reid"
+version = "0.1.0"
+description = ""
+authors = ["Leonardo Benitez <lsbenitezpereira@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.10"
+vision-unlearning = "*"
+python-dotenv = "~1.0"
+mypy = "~1.12"
+pycodestyle = "~2.12"
+pytest-asyncio = "^0.24.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
