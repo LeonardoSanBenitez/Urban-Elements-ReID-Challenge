@@ -1,9 +1,14 @@
 import os
 import csv
-import torch
+import re
 import argparse
+from typing import Literal, List, Dict
 
 import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data.dataloader import DataLoader
+
 from config import cfg
 from model import make_model
 from utils.logger import setup_logger
@@ -12,34 +17,56 @@ from data.build_DG_dataloader import build_reid_test_loader
 from processor.ori_vit_processor_with_amp import do_inference as do_inf
 from processor.part_attention_vit_processor import do_inference as do_inf_pat
 
-#from torch.backends import cudnn
 
-def extract_feature(model, dataloaders, num_query):
-    features = []
-    count = 0
-    img_path = []
+def extract_feature(model: nn.Module, dataloaders: DataLoader, subset: Literal['query', 'gallery'], filename_pattern: str = r'\.') -> np.ndarray:
+    '''
+    Parameters:
+        model: resnet featurizer
+        dataloaders: for everything
+        subset: to which suibset should the featurization should be restricted
+        filename_pattern: matches filename with `re.search`. The default value includes all images
+    Return:
+        feature vector shape [<number of images in subset, 768]
+    '''
+    assert isinstance(model, nn.Module)
+    assert isinstance(dataloaders, DataLoader)
+    assert type(num_query) == int
+    with torch.no_grad():
+        features = torch.FloatTensor(0, 768).cuda()
+        count = 0
+        img_path = []
+        for data in dataloaders:
+            images, _, _, filenames, metadatas = data.values()
 
-    for data in dataloaders:
-        img, a, b,_,_ = data.values()
-        #obtain values form dict data
-        n, c, h, w = img.size()
-        count += n
-        ff = torch.FloatTensor(n, 768).zero_().cuda()  # 2048 is pool5 of resnet
-        for i in range(2):
-            input_img = img.cuda()
-            outputs = model(input_img)
-            f = outputs.float()
-            ff = ff + f
-        fnorm = torch.norm(ff, p=2, dim=1, keepdim=True)
-        ff = ff.div(fnorm.expand_as(ff))
-        features.append(ff)
-    features = torch.cat(features, 0)
+            # Select only the images that belong to the desired subset
+            subsets: List[Literal['query', 'gallery']] = metadatas['q_or_g']
+            mask = torch.tensor([s == subset for s in subsets], dtype=torch.bool)
+            images = images[mask]
+            filenames = list(np.array(filenames)[mask])
+            assert len(images) == sum(1 for s in subsets if s == subset)
 
-    # query
-    qf = features[:num_query]
-    # gallery
-    gf = features[num_query:]
-    return qf, gf
+            # Select only the images that match the filename pattern
+            mask = torch.tensor([bool(re.search(filename_pattern, fn)) for fn in filenames], dtype=torch.bool)
+            images = images[mask]
+            filenames = list(np.array(filenames)[mask])
+            assert len(images) == sum(mask), "Selection count mismatch"
+
+            n, c, h, w = images.size()
+            if n==0:
+                continue
+
+            count += n
+            ff = torch.FloatTensor(n, 768).zero_().cuda()  # 2048 is pool5 of resnet
+            for i in range(2):
+                input_img = images.cuda()
+                outputs = model(input_img)
+                f = outputs.float()
+                ff = ff + f
+            fnorm = torch.norm(ff, p=2, dim=1, keepdim=True)
+            ff = ff.div(fnorm.expand_as(ff))
+            features = torch.cat([features, ff], 0)
+        assert features.shape[1] == 768
+        return features.cpu().numpy()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ReID Training")
@@ -78,24 +105,41 @@ if __name__ == "__main__":
     model.load_param(cfg.TEST.WEIGHT)
 
     for testname in cfg.DATASETS.TEST:
-        print('>>>>>>>>>>>>>>>>>>>>>>>', testname)
+        #print('>>>>>>>>>>>>>>>>>>>>>>>', testname)
         val_loader, num_query = build_reid_test_loader(cfg, testname)
         if cfg.MODEL.NAME == 'part_attention_vit':
             do_inf_pat(cfg, model, val_loader, num_query)
         else:
             do_inf(cfg, model, val_loader, num_query)
-    with torch.no_grad():
-        qf, gf = extract_feature(model, val_loader, num_query)
+    
+        #print(type(model))
+        #print(type(val_loader))
+        #print(type(num_query))
+        
+    qf = extract_feature(model, val_loader, subset='query')
+    qf_A = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_A\.')
+    qf_B = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_B\.')
+    qf_C = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_C\.')
+    gf = extract_feature(model, val_loader, subset='gallery')
+    
 
-    # save feature
-    qf=qf.cpu().numpy()
-    gf=gf.cpu().numpy()
-    np.save("./qf.npy", qf)
-    np.save("./gf.npy", gf)
+    assert qf.shape[0] == num_query
+    #assert qf_A.shape[0] == num_query
+    #assert qf_B.shape[0] == num_query
+    #assert qf_B.shape[0] == num_query
+    assert gf.shape[0] >= num_query  # I don't know how to check the expected number of galery images
 
-    q_g_dist = np.dot(qf, np.transpose(gf))
+    #np.save("./qf.npy", qf)
+    #np.save("./gf.npy", gf)
+    q_g_dist = np.dot(qf, np.transpose(gf)) # TODO: This one will have to be calculated 3 times, and averaged out
     q_q_dist = np.dot(qf, np.transpose(qf))
     g_g_dist = np.dot(gf, np.transpose(gf))
+
+    print('qf', qf.shape)
+    print('qf_A', qf_A.shape)
+    print('qf_B', qf_B.shape)
+    print('qf_C', qf_C.shape)
+    assert 8==0, "UHULLL"
 
     re_rank_dist = re_ranking(q_g_dist, q_q_dist, g_g_dist)
 

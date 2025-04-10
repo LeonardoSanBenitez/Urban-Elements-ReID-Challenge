@@ -4,6 +4,7 @@ qf.npy
 gf.npy
 README.md
 LICENSE
+*.sif
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
