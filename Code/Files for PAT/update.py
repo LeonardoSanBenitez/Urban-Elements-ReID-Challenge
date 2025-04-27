@@ -79,6 +79,7 @@ if __name__ == "__main__":
         "--track", default="./config/PAT.yml", help="path to config file", type=str
     )
     args = parser.parse_args()
+    num_gallery = 10#?    # I don't know how to check the expected number of galery images
 
     if args.config_file != "":
         cfg.merge_from_file(args.config_file)
@@ -127,7 +128,8 @@ if __name__ == "__main__":
     #assert qf_A.shape[0] == num_query
     #assert qf_B.shape[0] == num_query
     #assert qf_B.shape[0] == num_query
-    assert gf.shape[0] >= num_query  # I don't know how to check the expected number of galery images
+    assert gf.shape[0] >= num_query
+    print('????????????????????????????????', gf.shape)
 
     #np.save("./qf.npy", qf)
     #np.save("./gf.npy", gf)
