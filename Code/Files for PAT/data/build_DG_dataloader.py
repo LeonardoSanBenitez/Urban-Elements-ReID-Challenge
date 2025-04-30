@@ -9,6 +9,7 @@ string_classes = str
 from torch.utils.data import DataLoader
 from utils import comm
 import random
+import logging
 
 from . import samplers
 from .common import CommDataset
@@ -21,9 +22,7 @@ _root = os.getenv("REID_DATASETS", "../../data")
 def build_reid_train_loader(cfg):
     gettrace = getattr(sys, 'gettrace', None)
     if gettrace():
-        print('*'*100)
-        print('Hmm, Big Debugger is watching me')
-        print('*'*100)
+        logging.info('*'*100 + 'Hmm, Big Debugger is watching me' + '*'*100)
         num_workers = 0
     else:
         num_workers = cfg.DATALOADER.NUM_WORKERS
@@ -77,7 +76,7 @@ def build_reid_test_loader(cfg, dataset_name, opt=None, flag_test=True, shuffle=
     test_transforms = build_transforms(cfg, is_train=False)
     _root = cfg.DATASETS.ROOT_DIR
     if opt is None:
-        print('?????????????????', dataset_name, _root)
+        logging.info(f'Dataset and root: {dataset_name}, and {_root}')
         dataset = DATASET_REGISTRY.get(dataset_name)(root=_root)
         if comm.is_main_process():
             if flag_test:

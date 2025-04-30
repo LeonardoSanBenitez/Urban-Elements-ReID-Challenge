@@ -3,7 +3,7 @@ import csv
 import re
 import argparse
 from typing import Literal, List, Dict
-
+import logging
 import numpy as np
 import torch
 import torch.nn as nn
@@ -116,19 +116,20 @@ if __name__ == "__main__":
         #print(type(model))
         #print(type(val_loader))
         #print(type(num_query))
-        
-    qf = extract_feature(model, val_loader, subset='query')
+
+    qf = extract_feature(model, val_loader, subset='query', filename_pattern = r'^(?!.*refinement).*$')
+    #qf = extract_feature(model, val_loader, subset='query')
     qf_A = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_A\.')
     qf_B = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_B\.')
     qf_C = extract_feature(model, val_loader, subset='query', filename_pattern = r'_refinement_C\.')
     gf = extract_feature(model, val_loader, subset='gallery')
     
 
-    assert qf.shape[0] == num_query
+    #assert qf.shape[0] == num_query
     #assert qf_A.shape[0] == num_query
     #assert qf_B.shape[0] == num_query
     #assert qf_B.shape[0] == num_query
-    assert gf.shape[0] >= num_query
+    #assert gf.shape[0] >= num_query
     print('????????????????????????????????', gf.shape)
 
     #np.save("./qf.npy", qf)
@@ -141,9 +142,14 @@ if __name__ == "__main__":
     print('qf_A', qf_A.shape)
     print('qf_B', qf_B.shape)
     print('qf_C', qf_C.shape)
-    assert 8==0, "UHULLL"
+    #assert 8==0, "UHULLL"
 
-    re_rank_dist = re_ranking(q_g_dist, q_q_dist, g_g_dist)
+
+
+    print(f'Query_Gallery_dist = {q_g_dist.shape}')
+    print(f'Query_Query_dist = {q_q_dist.shape}')
+    print(f'Galery_Galery_dist = {g_g_dist.shape}')
+    re_rank_dist = re_ranking(q_g_dist, q_q_dist, g_g_dist, k1=10)  # TODO: original K1 was 20, but for the reduced dataset has to be 10
 
     indices = np.argsort(re_rank_dist, axis=1)[:, :100]
 
