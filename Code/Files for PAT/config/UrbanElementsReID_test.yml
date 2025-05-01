@@ -54,7 +54,7 @@ TEST:
   EVAL: True
   IMS_PER_BATCH: 128
   RE_RANKING: False
-  WEIGHT: "assets/models/PAT/part_attention_vit_1.pth" #test model (epoch number should coincide with the trained epochs)
+  WEIGHT: "assets/models/PAT/part_attention_vit_60.pth" #test model (epoch number should coincide with the trained epochs)
   NECK_FEAT: 'before'
   FEAT_NORM: True
 
