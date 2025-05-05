@@ -58,16 +58,19 @@ endef
 run-interactive-cluster:
 	$(call exec_cluster, "$(build_cluster)")
 
-	# TODO: for some reason, the following commands don't work inside the `exec_cluster` function
 	# Use `--gres` to select machine config (gpu:v100:1 = 1 V100 16GB GPU, gpu:a100:1 = 1 A100 40GB GPU)
-	# TODO: if a job is already running, skip this and go directly to the tunnel
+	# TODO: for some reason, the following commands don't work inside the `exec_cluster` function
 	sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu " \
-		nohup \
-		srun -pgpu --gres=gpu:v100:1 apptainer run --nv '${GIT_REPOSITORY_NAME}/run_cluster.sif' /usr/bin/tini -s -- jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token=b7edb73c-15fd-442b-9a06-8f3c6415b086 \
-		> output.log 2>&1 & \
+		if sacct -u \$$USER --noheader --format=State | grep -E 'RUNNING|PENDING' > /dev/null; then \
+			echo "A job is already runnning, will NOT start a new one"; \
+		else \
+			nohup \
+			srun -pgpu --gres=gpu:v100:1 apptainer run --nv '${GIT_REPOSITORY_NAME}/run_cluster.sif' /usr/bin/tini -s -- jupyter notebook --port=8888 --no-browser --ip=0.0.0.0 --allow-root --NotebookApp.token=b7edb73c-15fd-442b-9a06-8f3c6415b086 \
+			> output.log 2>&1 & \
+			echo "New job launched"; \
+			sleep 3; \
+		fi \
 	"
-	echo 'Job launched'
-	sleep 3
 
 	JOB_ID=$$( \
 		sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu "\
@@ -76,7 +79,6 @@ run-interactive-cluster:
 	)
 	echo "Latest Job ID: $$JOB_ID"
 
-	
 	export NODE=$$( \
 		sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu "\
 			scontrol show job $$JOB_ID | grep -oP '(?<=NodeList=)\S+' | grep -v '(null)'\
@@ -84,6 +86,8 @@ run-interactive-cluster:
 	)
 	echo "Node: $$NODE"
 
+	# TODO: if the job is still in PENDING state, the ssh will fail. We must tell the user to wait and try again (because the ssh tunnel will stop trying after a while)
+	# Only print the url if the job is running
 	echo "\n-------------------------------------------------------------------------\n"
 	echo "Go to http://localhost:8888/tree?token=b7edb73c-15fd-442b-9a06-8f3c6415b086"
 	echo "\n-------------------------------------------------------------------------\n"
@@ -91,6 +95,36 @@ run-interactive-cluster:
 	echo 'Starting the ssh tunnel...'
 	sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu -NTL 8888:$$NODE:8888
 
+run-batch-cluster:
+	$(call exec_cluster, $(build_cluster))
+	$(call exec_cluster, "\
+		cd '${GIT_REPOSITORY_NAME}'; \
+		sbatch run_batch_cluster.sh \
+	")
+
+debug-last-cluster:
+	$(call exec_cluster, "\
+		cd '${GIT_REPOSITORY_NAME}'; \
+		JOB_ID=\$$(sacct -u \$$USER --format=JobID,State,Start -n | sort -k3 -r | head -n 1 | awk '{print \$$1}' | sed 's/\..*\$$//'); \
+		echo -e 'Latest Job ID: \$$JOB_ID'; \
+		echo -e '\n\\n-------\nJob details using sacct\n-------'; \
+		sacct -j \$$JOB_ID; \
+		\
+		if [ -f assets/cluster_jobs/\$${JOB_ID}-train-err ]; then \
+			echo -e '\n\n-------\nJob error\n-------'; \
+			cat assets/cluster_jobs/\$${JOB_ID}-train-err; \
+		else \
+			echo -e '\n\n-------\nJob error file does not exist\n-------'; \
+		fi; \
+		\
+		if [ -f assets/cluster_jobs/\$${JOB_ID}-train-out ]; then \
+			echo -e '\n\n-------\nJob output\n-------'; \
+			cat assets/cluster_jobs/\$${JOB_ID}-train-out; \
+		else \
+			echo -e '\n\n-------\nJob output file does not exist\n-------'; \
+		fi; \
+		echo -e '\n\n-------\nJob output\n-------'; \
+	")
 
 clean-cluster:
 	$(call exec_cluster, "\
