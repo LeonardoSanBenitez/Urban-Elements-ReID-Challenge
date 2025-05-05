@@ -95,6 +95,36 @@ run-interactive-cluster:
 	echo 'Starting the ssh tunnel...'
 	sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu -NTL 8888:$$NODE:8888
 
+run-batch-cluster:
+	$(call exec_cluster, $(build_cluster))
+	$(call exec_cluster, "\
+		cd '${GIT_REPOSITORY_NAME}'; \
+		sbatch run_batch_cluster.sh \
+	")
+
+debug-last-cluster:
+	$(call exec_cluster, "\
+		cd '${GIT_REPOSITORY_NAME}'; \
+		JOB_ID=\$$(sacct -u \$$USER --format=JobID,State,Start -n | sort -k3 -r | head -n 1 | awk '{print \$$1}' | sed 's/\..*\$$//'); \
+		echo -e 'Latest Job ID: \$$JOB_ID'; \
+		echo -e '\n\\n-------\nJob details using sacct\n-------'; \
+		sacct -j \$$JOB_ID; \
+		\
+		if [ -f assets/cluster_jobs/\$${JOB_ID}-train-err ]; then \
+			echo -e '\n\n-------\nJob error\n-------'; \
+			cat assets/cluster_jobs/\$${JOB_ID}-train-err; \
+		else \
+			echo -e '\n\n-------\nJob error file does not exist\n-------'; \
+		fi; \
+		\
+		if [ -f assets/cluster_jobs/\$${JOB_ID}-train-out ]; then \
+			echo -e '\n\n-------\nJob output\n-------'; \
+			cat assets/cluster_jobs/\$${JOB_ID}-train-out; \
+		else \
+			echo -e '\n\n-------\nJob output file does not exist\n-------'; \
+		fi; \
+		echo -e '\n\n-------\nJob output\n-------'; \
+	")
 
 clean-cluster:
 	$(call exec_cluster, "\
