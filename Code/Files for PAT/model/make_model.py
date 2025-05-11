@@ -19,6 +19,7 @@ lup_path_name = {
 imagenet_path_name = {
     'vit_large_patch16_224_TransReID': 'jx_vit_large_p16_224-4ee7a4dc.pth',
     'vit_base_patch16_224_TransReID': 'jx_vit_base_p16_224-80ecf9dd.pth',
+    'vit_base_patch16_224_TransReID_PATr': 'part_attention_vit_60.pth',
     'vit_base_patch32_224_TransReID': 'jx_vit_base_patch32_224_in21k-8db57226.pth', 
     'deit_base_patch16_224_TransReID': 'deit_base_distilled_patch16_224-df68dfff.pth',
     'vit_small_patch16_224_TransReID': 'vit_small_p16_224-15ec54c9.pth',

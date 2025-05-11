@@ -96,7 +96,7 @@ run-interactive-cluster:
 	sshpass -p '${SSH_PASSWORD_SHIBBOLETH}' ssh -o ProxyCommand="sshpass -p '${SSH_PASSWORD_CLUSTER}' ssh -W %h:%p ${SSH_USER_SHIBBOLETH}@users.itk.ppke.hu" ${SSH_USER_CLUSTER}@cl.itk.ppke.hu -NTL 8888:$$NODE:8888
 
 run-batch-cluster:
-	$(call exec_cluster, $(build_cluster))
+	$(call exec_cluster, "$(build_cluster)")
 	$(call exec_cluster, "\
 		cd '${GIT_REPOSITORY_NAME}'; \
 		sbatch run_batch_cluster.sh \
