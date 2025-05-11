@@ -12,4 +12,5 @@ if [ "$(basename "$PWD")" != "Urban-Elements-ReID-Challenge" ]; then
 fi
 
 cd "Code/Files for PAT/"
-srun apptainer exec --nv ../../run_cluster.sif python run_all.py
+#srun apptainer exec --nv ../../run_cluster.sif python run_all.py
+srun apptainer exec --nv ../../run_cluster.sif python train.py --config_file "config/UrbanElementsReID_train_patplusplus.yml"
