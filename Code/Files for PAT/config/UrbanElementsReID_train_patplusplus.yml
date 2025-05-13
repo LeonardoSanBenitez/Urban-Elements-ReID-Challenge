@@ -26,7 +26,7 @@ DATASETS:
   TEST: ('UrbanElementsReID',)
   #ROOT_DIR: ('../../data') # root of datasets
   #ROOT_DIR: '/home/jgf/Desktop/rhome/jgf/baselineChallenge/UrbanElementsReID/'
-  ROOT_DIR: 'assets/datasets/urban-reid-challenge'
+  ROOT_DIR: 'assets/datasets/urban-reid-challenge-original'
 
 DATALOADER:
   SAMPLER: 'softmax_triplet'

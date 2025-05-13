@@ -686,51 +686,118 @@ class part_Attention_ViT(nn.Module):
         return x
 
     def load_param(self, model_path):
+        print('>>>>>>>> model_path', model_path)
         param_dict = torch.load(model_path, map_location='cpu')
         count = 0
         if 'model' in param_dict:
             param_dict = param_dict['model']
         if 'state_dict' in param_dict:
             param_dict = param_dict['state_dict']
+
+        print('>>>>>>>>> param_dict', param_dict.keys())
+        print('>>>>>>>>> state_dict', self.state_dict().keys())
+
+        
+            
         for k, v in param_dict.items():
-            if 'head' in k or 'dist' in k or 'pre_logits' in k: # ViT-L
-                continue
-            if 'patch_embed.proj.weight' in k and len(v.shape) < 4:
-                # For old models that I trained prior to conv based patchification
-                O, I, H, W = self.patch_embed.proj.weight.shape
-                v = v.reshape(O, -1, H, W)
-            elif k == 'pos_embed' and v.shape != self.pos_embed.shape:
-                # To resize pos embedding when using model at different size from pretrained weights
-                if 'distilled' in model_path:
-                    print('distill need to choose right cls token in the pth')
-                    v = torch.cat([v[:, 0:1], v[:, 2:]], dim=1)
-                    v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
-                elif self.pretrain_tag == 'lup':
-                    v_old = v
-                    b, n, c = v.size()
-                    v = torch.zeros([b,n+3,c], dtype=v_old.dtype)
-                    v[:, :3] = v_old[:, 0]
-                    v[:, 3:] = v_old
-                    print('Resized position embedding from size:{} to size: {} with height:{} width: {}'.format(v_old.shape, v.shape, self.patch_embed.num_y, self.patch_embed.num_x))
-                else:
-                    v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
-            elif 'cls_token' in k:
-                self.state_dict()['part_token1'].copy_(v)
-                self.state_dict()['part_token2'].copy_(v)
-                self.state_dict()['part_token3'].copy_(v)
-                self.state_dict()[k].copy_(v)
-                count += 4
-                continue
-            elif 'attn' in k:
-                self.state_dict()[k.replace('attn', 'part_attn')].copy_(v)
-                count += 1
-                continue
-            try:
-                self.state_dict()[k].copy_(v)
-                count += 1
-            except:
-                print('===========================ERROR=========================')
-                print('shape do not match in k :{}: param_dict{} vs self.state_dict(){}'.format(k, v.shape, self.state_dict()[k].shape))
+
+            #####################
+            # UGLY WORKAROUND
+            if '/PAT_r/' not in model_path:
+                print('>>>>>>>>>>>> using safe original code... coward...')
+                if 'head' in k or 'dist' in k or 'pre_logits' in k: # ViT-L
+                    continue
+                if 'patch_embed.proj.weight' in k and len(v.shape) < 4:
+                    # For old models that I trained prior to conv based patchification
+                    O, I, H, W = self.patch_embed.proj.weight.shape
+                    v = v.reshape(O, -1, H, W)
+                elif k == 'pos_embed' and v.shape != self.pos_embed.shape:
+                    # To resize pos embedding when using model at different size from pretrained weights
+                    if 'distilled' in model_path:
+                        print('distill need to choose right cls token in the pth')
+                        v = torch.cat([v[:, 0:1], v[:, 2:]], dim=1)
+                        v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
+                    elif self.pretrain_tag == 'lup':
+                        v_old = v
+                        b, n, c = v.size()
+                        v = torch.zeros([b,n+3,c], dtype=v_old.dtype)
+                        v[:, :3] = v_old[:, 0]
+                        v[:, 3:] = v_old
+                        print('Resized position embedding from size:{} to size: {} with height:{} width: {}'.format(v_old.shape, v.shape, self.patch_embed.num_y, self.patch_embed.num_x))
+                    else:
+                        v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
+                elif 'cls_token' in k:
+                    self.state_dict()['part_token1'].copy_(v)
+                    self.state_dict()['part_token2'].copy_(v)
+                    self.state_dict()['part_token3'].copy_(v)
+                    self.state_dict()[k].copy_(v)
+                    count += 4
+                    continue
+                elif 'attn' in k:
+                    self.state_dict()[k.replace('attn', 'part_attn')].copy_(v)
+                    count += 1
+                    continue
+                try:
+                    self.state_dict()[k].copy_(v)
+                    count += 1
+                except:
+                    print('===========================ERROR=========================')
+                    print('shape do not match in k :{}: param_dict{} vs self.state_dict(){}'.format(k, v.shape, self.state_dict()[k].shape))
+            #####################
+            elif False:
+                print('>>>>>>>>>>>> Buggy code should be banned...')
+                if 'head' in k or 'dist' in k or 'pre_logits' in k: # ViT-L
+                    continue
+                if 'patch_embed.proj.weight' in k and len(v.shape) < 4:
+                    # For old models that I trained prior to conv based patchification
+                    O, I, H, W = self.patch_embed.proj.weight.shape
+                    v = v.reshape(O, -1, H, W)
+                elif k == 'pos_embed' and v.shape != self.pos_embed.shape:
+                    # To resize pos embedding when using model at different size from pretrained weights
+                    if 'distilled' in model_path:
+                        print('distill need to choose right cls token in the pth')
+                        v = torch.cat([v[:, 0:1], v[:, 2:]], dim=1)
+                        v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
+                    elif self.pretrain_tag == 'lup':
+                        v_old = v
+                        b, n, c = v.size()
+                        v = torch.zeros([b,n+3,c], dtype=v_old.dtype)
+                        v[:, :3] = v_old[:, 0]
+                        v[:, 3:] = v_old
+                        print('Resized position embedding from size:{} to size: {} with height:{} width: {}'.format(v_old.shape, v.shape, self.patch_embed.num_y, self.patch_embed.num_x))
+                    else:
+                        v = resize_pos_embed_part_vit(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
+                elif 'cls_token' in k:
+                    #print('>>>>>>>>>>>> IT ENTERED HERE!!!!!!!!!!!!!!!!!!!!!')
+                    #print(type(self.state_dict()))
+                    #print(self.state_dict().keys())
+                    #print('k =', k)
+                    self.state_dict()['part_token1'].copy_(v)
+                    self.state_dict()['part_token2'].copy_(v)
+                    self.state_dict()['part_token3'].copy_(v)
+                    #self.state_dict()[k].copy_(v)
+                    self.state_dict()['cls_token'].copy_(v)  # HARDCODED FOR PAT++
+                    count += 4
+                    continue
+                elif 'attn' in k:
+                    self.state_dict()[k.replace('attn', 'part_attn').replace('part_part_', 'part_').replace('base.', '')].copy_(v)  # HARDCODED FOR PAT++
+                    count += 1
+                    continue
+                try:
+                    #self.state_dict()[k].copy_(v)
+                    self.state_dict()[k.replace('base.', '')].copy_(v)  # HARDCODED FOR PAT++
+                    count += 1
+                except:
+                    #print('===========================ERROR=========================')    # HARDCODED FOR PAT++
+                    #print('shape do not match in k :{}: param_dict{} vs self.state_dict(){}'.format(k, v.shape, self.state_dict()[k].shape))    # HARDCODED FOR PAT++
+                    pass
+            else:
+                print('>>>>>>>>>>>> oho oho... brave... using modified code...')
+                if ('bottleneck' not in k) and ('classifier' not in k):
+                    self.state_dict()[k.replace('base.', '')].copy_(v)  # copies the content of tensor v into the tensor at key k inside the model, in-place.
+                    
+            #####################
+            # END OF UGLY WORKAROUND
         print('Load %d / %d layers.'%(count,len(self.state_dict().keys())))
 
     def compute_num_params(self):
